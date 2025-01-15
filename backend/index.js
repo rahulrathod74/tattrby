@@ -1,14 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-require("dotenv").config(); // To manage environment variables
+require("dotenv").config();
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // Using express's built-in JSON parser
+app.use(express.json()); // Use JSON parser
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB)
@@ -43,7 +42,6 @@ app.post("/api/signup", async (req, res) => {
   }
 
   try {
-    // Check if the email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
@@ -62,7 +60,7 @@ app.post("/api/signup", async (req, res) => {
 // Login Route
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
-  
+
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
@@ -83,7 +81,7 @@ app.post("/api/inventory", async (req, res) => {
   const car = new Car(req.body);
   try {
     await car.save();
-    res.json({ message: "Car added successfully!" });
+    res.json({ message: "Car added successfully!", car });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to add car" });
@@ -94,7 +92,7 @@ app.post("/api/inventory", async (req, res) => {
 app.get("/api/inventory", async (req, res) => {
   const { price, mileage, color } = req.query;
   const filters = {};
-  
+
   if (price) filters.price = { $lte: Number(price) };
   if (mileage) filters.mileage = { $lte: Number(mileage) };
   if (color) filters.color = color;
@@ -105,6 +103,39 @@ app.get("/api/inventory", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch cars" });
+  }
+});
+
+// Update Car in Inventory
+app.put("/api/inventory/:id", async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+
+  try {
+    const updatedCar = await Car.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updatedCar) {
+      return res.status(404).json({ error: "Car not found" });
+    }
+    res.json({ message: "Car updated successfully!", car: updatedCar });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to update car" });
+  }
+});
+
+// Delete Car from Inventory
+app.delete("/api/inventory/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedCar = await Car.findByIdAndDelete(id);
+    if (!deletedCar) {
+      return res.status(404).json({ error: "Car not found" });
+    }
+    res.json({ message: "Car deleted successfully!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete car" });
   }
 });
 
